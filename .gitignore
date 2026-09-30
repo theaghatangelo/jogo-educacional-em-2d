@@ -1,0 +1,11 @@
+# Pastas que o Visual Studio cria sozinho
+.vs/
+x64/
+Debug/
+Release/
+
+# Allegro baixado pelo NuGet (cada um baixa sozinho)
+packages/
+
+# Configurações pessoais de cada um
+*.user
