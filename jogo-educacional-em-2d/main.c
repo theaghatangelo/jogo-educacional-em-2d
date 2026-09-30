@@ -25,7 +25,7 @@ int main() {
         }
 
         al_clear_to_color(al_map_rgb(255, 255, 255));
-        al_draw_text(font, al_map_rgb(0, 0, 0), 230, 200, 0, "Allegro is working!");
+        al_draw_text(font, al_map_rgb(0, 0, 0), 230, 200, 0, "PixelGENETICS!");
         al_flip_display();
     }
 
