@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="jogo-educacional-em-2d/jogo-educacional-em-2d.vcxproj" />
+  <Project Path="jogo-educacional-em-2d/jogo-educacional-em-2d.vcxproj" Id="fc227168-956a-4916-a9ea-b8ce4d53d113" />
 </Solution>
