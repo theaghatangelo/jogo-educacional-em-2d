@@ -9,3 +9,7 @@ packages/
 
 # Configurações pessoais de cada um
 *.user
+
+
+# Diário que o Allegro gera toda vez que o jogo roda
+*.log
