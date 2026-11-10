@@ -19,8 +19,11 @@ typedef struct {
 
 int main() {
 
-    // ===== 1. LIGAR AS PARTES DO ALLEGRO =====
+
+    //Inicialização do allegro
     al_init();
+
+    //Inicialização de addon
     al_init_font_addon();
     al_init_image_addon();
     al_init_primitives_addon();
@@ -32,7 +35,7 @@ int main() {
     ALLEGRO_FONT* font = al_create_builtin_font();
     ALLEGRO_TIMER* timer = al_create_timer(1.0 / 60.0);
 
-    // ===== 2. CARREGAR IMAGENS =====
+    //Imagens
     ALLEGRO_BITMAP* personagem = al_load_bitmap("personagem.png");
     if (personagem == NULL) {
         printf("Erro: nao encontrei o arquivo personagem.png\n");
@@ -48,12 +51,12 @@ int main() {
     // ===== 3. OS LUGARES DO MAPA (posições medidas na imagem de fundo) =====
     // Obs.: a fonte embutida do Allegro não tem acentos, por isso "LABORATORIO"
     Local locais[NUM_LOCAIS] = {
-        { 148, 128, 436, 299, "LABORATORIO",""},
-        { 734,  76, 955, 238, "FAZENDA DE ERVINHAS",""},
-        { 734, 528, 942, 676, "TESTE DE MESA",""}
+        { 148, 128, 436, 299, "LABORATORIO","" },
+        { 734,  76, 955, 238, "FAZENDA DE ERVINHAS","" },
+        { 734, 528, 942, 676, "TESTE DE MESA","" }
     };
 
-    // ===== 4. VARIÁVEIS DO PERSONAGEM =====
+    // Variaveis
     int escala = 4;
     float largura = al_get_bitmap_width(personagem) * escala;    // 80
     float altura = al_get_bitmap_height(personagem) * escala;    // 80
@@ -64,7 +67,11 @@ int main() {
     int local_perto = -1;   // qual lugar está perto (-1 = nenhum)
     int popup_aberto = -1;  // qual pop-up está aberto (-1 = nenhum)
 
-    // ===== 5. FILA DE EVENTOS =====
+    //Fase 1  
+    int coletou_verde = 0;
+    int coletou_amarela = 0;
+
+    //Fila de Eventos
     ALLEGRO_EVENT_QUEUE* event_queue = al_create_event_queue();
     al_register_event_source(event_queue, al_get_display_event_source(display));
     al_register_event_source(event_queue, al_get_timer_event_source(timer));
@@ -90,6 +97,13 @@ int main() {
                     popup_aberto = local_perto;     // perto de um lugar: E abre
                 }
             }
+            if (popup_aberto == 1 && event.keyboard.keycode == ALLEGRO_KEY_1) {
+                coletou_verde = 1;
+            }
+            if (popup_aberto == 1 && event.keyboard.keycode == ALLEGRO_KEY_2) {
+                coletou_amarela = 1;
+            }
+
             if (event.keyboard.keycode == ALLEGRO_KEY_ESCAPE) {
                 popup_aberto = -1;                  // ESC também fecha
             }
@@ -142,6 +156,7 @@ int main() {
                 }
             }
 
+
             // ----- DESENHO -----
             al_draw_bitmap(fundo, 0, 0, 0);
 
@@ -157,6 +172,7 @@ int main() {
             al_draw_scaled_bitmap(personagem,
                 0, 0, al_get_bitmap_width(personagem), al_get_bitmap_height(personagem),
                 x, y, largura, altura, 0);
+
 
             // Dica "Aperte E" quando está perto e o pop-up está fechado
             if (local_perto != -1 && popup_aberto == -1) {
@@ -181,6 +197,26 @@ int main() {
                     ALLEGRO_ALIGN_CENTRE, locais[popup_aberto].descricao);
                 al_draw_text(font, al_map_rgb(120, 120, 120), LARGURA_TELA / 2, 510,
                     ALLEGRO_ALIGN_CENTRE, "");
+
+                //Ervilhas
+                if (popup_aberto == 1) {
+                    al_draw_text(font, al_map_rgb(0, 0, 0), 512, 330, ALLEGRO_ALIGN_CENTRE, "Colete as ervilhas!");
+                    if (coletou_verde == 0) {
+                        al_draw_filled_circle(400, 420, 25, al_map_rgb(40, 180, 50));
+                        al_draw_text(font, al_map_rgb(0, 0, 0), 400, 460, ALLEGRO_ALIGN_CENTRE, "Verde - Tecla 1");
+                    }
+                    else {
+                        al_draw_text(font, al_map_rgb(0, 150, 0), 400, 420, ALLEGRO_ALIGN_CENTRE, "VERDE COLETADA");
+                    }
+                    if (coletou_amarela == 0) {
+                        al_draw_filled_circle(620, 420, 25, al_map_rgb(255, 220, 0));
+                        al_draw_text(font, al_map_rgb(0, 0, 0), 620, 460, ALLEGRO_ALIGN_CENTRE, "Amarela - Tecla 2");
+                    }
+                    else {
+                        al_draw_text(font, al_map_rgb(180, 140, 0), 620, 420, ALLEGRO_ALIGN_CENTRE, "AMARELA COLETADA");
+                    }
+                }
+
             }
 
             al_flip_display();
