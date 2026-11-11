@@ -120,6 +120,13 @@ int main() {
         return 1;
     }
 
+    // IMAGEM DO LIVRO DE MENDEL
+    ALLEGRO_BITMAP* livro_mendel = al_load_bitmap("livro_mendel.png");
+    if (!livro_mendel) {
+        printf("Erro: nao encontrei livro_mendel.png\n");
+        return 1;
+    }
+
     // ESTADO DO JOGO
     Estado estado = ESTADO_TELA_INICIAL;
 
@@ -168,6 +175,34 @@ int main() {
     // INTERACAO COM LOCAIS
     int local_perto = -1;
     int popup_aberto = -1;
+
+
+    // PAGINAS DO LIVRO DE MENDEL
+    int pagina_mendel = 0;
+
+    const char* textos_mendel[3] = {
+
+        // PAGINA 1
+        "Mendel cruzou ervilhas de linhagens puras com "
+        "caracteristicas diferentes e observou como elas "
+        "eram transmitidas entre geracoes.\n\n"
+        "Suas descobertas foram:\n\n"
+        "- Dominante: aparece na primeira geracao e esconde a recessiva.\n\n"
+        "- Recessiva: fica escondida na primeira geracao, mas reaparece na segunda.\n\n"
+        "- Proporcao: aproximadamente 3 plantas dominantes para cada 1 recessiva (3:1).\n\n"
+        "- Independencia: uma caracteristica e herdada independentemente de outra.\n\n"
+        "Mendel demonstrou que as caracteristicas sao transmitidas entre geracoes seguindo padroes de hereditariedade.",
+
+        // PAGINA 2
+        "Um dos principais trabalhos realizados por Gregor Mendel baseava-se no cruzamento de ervilhas a fim de compreender melhor os mecanismos de hereditariedade.\n\n"
+        "As ervilhas foram o objeto de estudo ideal, uma vez que essas plantas possuem tempo de geracao curto, geram grande numero de descendentes por meio de cada cruzamento e apresentam uma serie de caracteristicas que podem ser analisadas.",
+
+        // PAGINA 3
+        "Em um dos seus experimentos, Mendel cruzou plantas puras de sementes lisas com plantas puras de sementes rugosas.\n\n"
+        "Ele esperava obter individuos que fossem uma mistura entre as caracteristicas lisas e rugosas.\n\n"
+        "Entretanto, observou apenas sementes lisas. Esses individuos foram chamados de hibridos, por serem resultado do cruzamento de plantas com caracteristicas diferentes.\n\n"
+        "Mendel tambem realizou outros testes, como os famosos experimentos com ervilhas amarelas e verdes."
+    };
 
     // ERVILHAS DA FAZENDA
     const char* arq_ervilha[NUM_ERVILHAS] = {
@@ -343,6 +378,22 @@ int main() {
                     }
                     else if (local_perto != -1) {
                         popup_aberto = local_perto;
+
+                        // Sempre comeca pela primeira pagina ao abrir a Casa
+                        if (popup_aberto == 2) {
+                            pagina_mendel = 0;
+                        }
+                    }
+                }
+
+                // PASSAR PAGINA DO LIVRO COM A TECLA P
+                if (event.keyboard.keycode == ALLEGRO_KEY_P &&
+                    popup_aberto == 2) {
+
+                    pagina_mendel++;
+
+                    if (pagina_mendel >= 3) {
+                        pagina_mendel = 0;
                     }
                 }
 
@@ -449,7 +500,7 @@ int main() {
                 // DESENHO DO MAPA
                 al_draw_bitmap(fundo, 0, 0, 0);
 
-             
+
 
                 // DESENHO DO PERSONAGEM
                 int linha = andando ? ciclo[passo] : LIN_PARADO;
@@ -592,7 +643,35 @@ int main() {
                         );
                     }
 
-                    // OUTROS LOCAIS
+                    // CASA - LIVRO DE MENDEL
+                    else if (popup_aberto == 2) {
+
+                        // DESENHA A IMAGEM DO LIVRO NA TELA
+                        al_draw_scaled_bitmap(
+                            livro_mendel,
+                            0, 0,
+                            al_get_bitmap_width(livro_mendel),
+                            al_get_bitmap_height(livro_mendel),
+                            0, 0,
+                            LARGURA_TELA,
+                            ALTURA_TELA,
+                            0
+                        );
+
+                        // DESENHA O TEXTO SOBRE AS DUAS PAGINAS BRANCAS
+                        al_draw_multiline_text(
+                            font,
+                            al_map_rgb(40, 40, 40),
+                            130,                 // Posicao X do texto
+                            450,                 // Posicao Y do texto
+                            760,                 // Largura maxima do texto
+                            15,                  // Espacamento entre linhas
+                            ALLEGRO_ALIGN_LEFT,
+                            textos_mendel[pagina_mendel]
+                        );
+                    }
+
+                    // OUTROS LOCAIS (LABORATORIO)
                     else {
 
                         al_draw_filled_rectangle(
@@ -620,6 +699,7 @@ int main() {
     al_destroy_bitmap(sheet_amanda);
     al_destroy_bitmap(fundo);
     al_destroy_bitmap(fundo_fazenda);
+    al_destroy_bitmap(livro_mendel);
 
     for (int i = 0; i < NUM_ERVILHAS; i++) {
         al_destroy_bitmap(ervilhas[i].imagem);
