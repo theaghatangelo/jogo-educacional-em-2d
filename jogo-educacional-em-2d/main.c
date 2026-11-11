@@ -34,11 +34,17 @@
 
 // DESAFIO DO LABORATORIO
 #define TEMPO_DESAFIO 45.0
+// FASE 2
+#define NUM_CASAS 5
+#define SETA_FASE2_TAM 64
+#define SETA_FASE2_X (LARGURA_TELA - SETA_FASE2_TAM - 8)
+#define SETA_FASE2_Y ((ALTURA_TELA - SETA_FASE2_TAM) / 2)
 
 // ESTADOS DO JOGO
 typedef enum {
     ESTADO_TELA_INICIAL,
-    ESTADO_FASE_1
+    ESTADO_FASE_1,
+    ESTADO_FASE_2
 } Estado;
 
 // LOCAIS DO MAPA
@@ -71,6 +77,89 @@ static int dentro(Area a, float px, float py) {
 static void definir_mensagem(char destino[], int tamanho,
     const char* mensagem) {
     snprintf(destino, tamanho, "%s", mensagem);
+}
+// LE A TECLA 1, 2, 3 OU 4 (0 = OUTRA TECLA)
+static int tecla_resposta(int tecla) {
+    if (tecla == ALLEGRO_KEY_1 || tecla == ALLEGRO_KEY_PAD_1) return 1;
+    if (tecla == ALLEGRO_KEY_2 || tecla == ALLEGRO_KEY_PAD_2) return 2;
+    if (tecla == ALLEGRO_KEY_3 || tecla == ALLEGRO_KEY_PAD_3) return 3;
+    if (tecla == ALLEGRO_KEY_4 || tecla == ALLEGRO_KEY_PAD_4) return 4;
+    return 0;
+}
+
+// MOVIMENTA O PERSONAGEM (USADO NAS DUAS FASES)
+static void mover_personagem(float* x, float* y, int* direcao,
+    int* andando, float velocidade, float largura, float altura) {
+
+    ALLEGRO_KEYBOARD_STATE teclado;
+    al_get_keyboard_state(&teclado);
+
+    if (al_key_down(&teclado, ALLEGRO_KEY_W) ||
+        al_key_down(&teclado, ALLEGRO_KEY_UP)) {
+        *y -= velocidade;
+        *direcao = COL_COSTAS;
+        *andando = 1;
+    }
+
+    if (al_key_down(&teclado, ALLEGRO_KEY_S) ||
+        al_key_down(&teclado, ALLEGRO_KEY_DOWN)) {
+        *y += velocidade;
+        *direcao = COL_FRENTE;
+        *andando = 1;
+    }
+
+    if (al_key_down(&teclado, ALLEGRO_KEY_A) ||
+        al_key_down(&teclado, ALLEGRO_KEY_LEFT)) {
+        *x -= velocidade;
+        *direcao = COL_ESQUERDA;
+        *andando = 1;
+    }
+
+    if (al_key_down(&teclado, ALLEGRO_KEY_D) ||
+        al_key_down(&teclado, ALLEGRO_KEY_RIGHT)) {
+        *x += velocidade;
+        *direcao = COL_DIREITA;
+        *andando = 1;
+    }
+
+    // LIMITES DA TELA
+    if (*x < 0) *x = 0;
+    if (*y < 0) *y = 0;
+    if (*x > LARGURA_TELA - largura) *x = LARGURA_TELA - largura;
+    if (*y > ALTURA_TELA - altura) *y = ALTURA_TELA - altura;
+}
+
+// ANIMACAO DOS PASSOS (USADA NAS DUAS FASES)
+static void animar(int andando, int* contador, int* passo) {
+
+    if (andando) {
+        (*contador)++;
+
+        if (*contador >= TICKS_POR_PASSO) {
+            *contador = 0;
+            *passo = (*passo + 1) % 4;
+        }
+    }
+    else {
+        *contador = 0;
+        *passo = 0;
+    }
+}
+
+// DESENHA O PERSONAGEM
+static void desenhar_personagem(ALLEGRO_BITMAP* sheet, int direcao,
+    int andando, int frame_andando, float x, float y,
+    float largura, float altura) {
+
+    int linha = andando ? frame_andando : LIN_PARADO;
+
+    al_draw_scaled_bitmap(
+        sheet,
+        direcao * TAM_SPRITE, linha * TAM_SPRITE,
+        TAM_SPRITE, TAM_SPRITE,
+        x, y, largura, altura,
+        0
+    );
 }
 
 int main() {
@@ -142,6 +231,11 @@ int main() {
     ALLEGRO_BITMAP* seta = al_load_bitmap("seta.png");
     if (!seta) {
         printf("Erro: nao encontrei seta.png\n");
+        return 1;
+    }
+    ALLEGRO_BITMAP* fundo_fase2 = al_load_bitmap("fundo_fase_2.png");
+    if (!fundo_fase2) {
+        printf("Erro: nao encontrei fundo_fase_2.png\n");
         return 1;
     }
 
@@ -326,6 +420,78 @@ int main() {
     // PERGUNTA 2 = ALTERNATIVA 1
     // PERGUNTA 3 = ALTERNATIVA 3
     int respostas_corretas[3] = { 2, 1, 3 };
+    // FASE 2
+    int fase2_liberada = 0;
+
+    // CASAS DA FASE 2
+    // 0 = AMARELA | 1 = ROSA | 2 = VERDE | 3 = AZUL | 4 = VERMELHA
+    Local casas[NUM_CASAS] = {
+        {719, 50, 958, 275, "CASA AMARELA", "Daltonismo"},
+        {29, 154, 268, 379, "CASA ROSA", "Tipo sanguineo ABO"},
+        {377, 294, 616, 520, "CASA VERDE", "Fator Rh"},
+        {639, 543, 878, 768, "CASA AZUL", "Albinismo"},
+        {58, 564, 297, 789, "CASA VERMELHA", "Sexo do bebe"}
+    };
+
+    int popup_casa = -1;
+    int casa_fechada = -1;
+    int casa_ok[NUM_CASAS] = { 0, 0, 0, 0, 0 };
+
+    char mensagem_casa[80] = "";
+
+    const char* perguntas_casas[NUM_CASAS] = {
+
+        "Um menino nasceu daltonico. O gene do daltonismo esta no "
+        "cromossomo X. De quem ele herdou esse gene?",
+
+        "Um pai de sangue tipo O e uma mae de sangue tipo AB "
+        "tem um filho. Quais tipos sanguineos o filho pode ter?",
+
+        "O pai e Rh positivo (Rr) e a mae e Rh negativo (rr). "
+        "Qual a chance de o filho ser Rh negativo?",
+
+        "Pai e mae tem pele normal (Aa), mas os dois carregam "
+        "o gene do albinismo (a). Qual a chance de terem um filho albino?",
+
+        "Quem determina o sexo biologico do bebe?"
+    };
+
+    const char* alternativas_casas[NUM_CASAS][4] = {
+        { "1 - Do pai", "2 - Da mae",
+          "3 - Do pai e da mae igualmente", "4 - Nao e herdado" },
+
+        { "1 - Apenas O", "2 - Apenas AB",
+          "3 - A ou B", "4 - AB ou O" },
+
+        { "1 - 50%", "2 - 0%", "3 - 25%", "4 - 100%" },
+
+        { "1 - 0%", "2 - 50%", "3 - 75%", "4 - 25%" },
+
+        { "1 - O espermatozoide do pai (X ou Y)",
+          "2 - O ovulo da mae (sempre X)",
+          "3 - Os dois decidem igualmente",
+          "4 - Depende so do ambiente" }
+    };
+
+    const char* explicacoes_casas[NUM_CASAS] = {
+        "O gene do daltonismo fica no cromossomo X. O menino recebe "
+        "o X da mae e o Y do pai, entao ele herdou o gene da mae.",
+
+        "O (ii) x AB (IA IB): o filho recebe i de um e IA ou IB do "
+        "outro. Ou seja, tipo A (IA i) ou tipo B (IB i).",
+
+        "Rr x rr: metade dos filhos recebe r dos dois (rr, Rh negativo) "
+        "e metade recebe R (Rr, Rh positivo). Chance de 50%.",
+
+        "Aa x Aa gera AA, Aa, Aa e aa. Somente aa e albino: "
+        "1 em 4, ou seja, 25%.",
+
+        "A mae sempre doa um X. O pai doa X ou Y. Se o espermatozoide "
+        "tiver Y, nasce menino. Se tiver X, nasce menina."
+    };
+
+    // RESPOSTAS CORRETAS DAS CASAS
+    int respostas_casas[NUM_CASAS] = { 2, 3, 1, 4, 1 };
 
     // FILA DE EVENTOS
     ALLEGRO_EVENT_QUEUE* event_queue =
@@ -589,6 +755,7 @@ int main() {
                             if (pergunta_mendel >= 3) {
 
                                 desafio_concluido = 1;
+                                fase2_liberada = 1;
                                 desafio_iniciado = 0;
 
                                 definir_mensagem(
@@ -654,74 +821,30 @@ int main() {
 
                 // MOVIMENTACAO
                 if (popup_aberto == -1) {
-
-                    ALLEGRO_KEYBOARD_STATE teclado;
-                    al_get_keyboard_state(&teclado);
-
-                    // CIMA: W OU SETA PARA CIMA
-                    if (al_key_down(&teclado, ALLEGRO_KEY_W) ||
-                        al_key_down(&teclado, ALLEGRO_KEY_UP)) {
-
-                        y -= velocidade;
-                        direcao = COL_COSTAS;
-                        andando = 1;
-                    }
-
-                    // BAIXO: S OU SETA PARA BAIXO
-                    if (al_key_down(&teclado, ALLEGRO_KEY_S) ||
-                        al_key_down(&teclado, ALLEGRO_KEY_DOWN)) {
-
-                        y += velocidade;
-                        direcao = COL_FRENTE;
-                        andando = 1;
-                    }
-
-                    // ESQUERDA: A OU SETA ESQUERDA
-                    if (al_key_down(&teclado, ALLEGRO_KEY_A) ||
-                        al_key_down(&teclado, ALLEGRO_KEY_LEFT)) {
-
-                        x -= velocidade;
-                        direcao = COL_ESQUERDA;
-                        andando = 1;
-                    }
-
-                    // DIREITA: D OU SETA DIREITA
-                    if (al_key_down(&teclado, ALLEGRO_KEY_D) ||
-                        al_key_down(&teclado, ALLEGRO_KEY_RIGHT)) {
-
-                        x += velocidade;
-                        direcao = COL_DIREITA;
-                        andando = 1;
-                    }
-
-                    // LIMITES DA TELA
-                    if (x < 0) x = 0;
-                    if (y < 0) y = 0;
-
-                    if (x > LARGURA_TELA - largura) {
-                        x = LARGURA_TELA - largura;
-                    }
-
-                    if (y > ALTURA_TELA - altura) {
-                        y = ALTURA_TELA - altura;
-                    }
+                    mover_personagem(&x, &y, &direcao, &andando,
+                        velocidade, largura, altura);
                 }
 
                 // ANIMACAO
-                if (andando) {
+                animar(andando, &contador, &passo);
 
-                    contador++;
+                // CHEGOU PERTO DA SETA: VAI PARA A FASE 2
+                if (fase2_liberada &&
+                    popup_aberto == -1 &&
+                    x + largura > SETA_FASE2_X - DISTANCIA_PERTO &&
+                    x < SETA_FASE2_X + SETA_FASE2_TAM + DISTANCIA_PERTO &&
+                    y + altura > SETA_FASE2_Y - DISTANCIA_PERTO &&
+                    y < SETA_FASE2_Y + SETA_FASE2_TAM + DISTANCIA_PERTO) {
 
-                    if (contador >= TICKS_POR_PASSO) {
+                    estado = ESTADO_FASE_2;
 
-                        contador = 0;
-                        passo = (passo + 1) % 4;
-                    }
-                }
-                else {
+                    x = 860;
+                    y = 380;
+                    direcao = COL_ESQUERDA;
+                    popup_casa = -1;
+                    casa_fechada = -1;
 
-                    contador = 0;
-                    passo = 0;
+                    continue;
                 }
 
                 // VERIFICA SE ESTA PERTO DE ALGUM LOCAL
@@ -797,6 +920,21 @@ int main() {
                     altura,
                     0
                 );
+                // SETA PARA A PROXIMA FASE (FICA PARADA)
+                if (fase2_liberada) {
+
+                    al_draw_scaled_rotated_bitmap(
+                        seta,
+                        al_get_bitmap_width(seta) / 2.0f,
+                        al_get_bitmap_height(seta) / 2.0f,
+                        SETA_FASE2_X + SETA_FASE2_TAM / 2.0f,
+                        SETA_FASE2_Y + SETA_FASE2_TAM / 2.0f,
+                        SETA_FASE2_TAM / (float)al_get_bitmap_width(seta),
+                        SETA_FASE2_TAM / (float)al_get_bitmap_height(seta),
+                        1.5707963f,
+                        0
+                    );
+                }
 
                 // DICA PARA ENTRAR NOS LOCAIS
                 if (local_perto != -1 &&
@@ -1203,6 +1341,276 @@ int main() {
                 al_flip_display();
             }
         }
+        // =====================================
+        // FASE 2
+        // =====================================
+        else if (estado == ESTADO_FASE_2) {
+
+            // TECLADO
+            if (event.type == ALLEGRO_EVENT_KEY_DOWN &&
+                popup_casa != -1) {
+
+                int tecla = event.keyboard.keycode;
+
+                // FECHAR COM E OU ESC
+                if (tecla == ALLEGRO_KEY_E ||
+                    tecla == ALLEGRO_KEY_ESCAPE) {
+
+                    casa_fechada = popup_casa;
+                    popup_casa = -1;
+                }
+                // RESPONDER COM 1, 2, 3 OU 4
+                else if (!casa_ok[popup_casa]) {
+
+                    int resposta = tecla_resposta(tecla);
+
+                    if (resposta != 0) {
+
+                        if (resposta == respostas_casas[popup_casa]) {
+
+                            casa_ok[popup_casa] = 1;
+
+                            definir_mensagem(
+                                mensagem_casa,
+                                sizeof(mensagem_casa),
+                                "Resposta correta!"
+                            );
+                        }
+                        else {
+
+                            definir_mensagem(
+                                mensagem_casa,
+                                sizeof(mensagem_casa),
+                                "Resposta incorreta! Tente novamente."
+                            );
+                        }
+                    }
+                }
+            }
+
+            // ATUALIZACAO E DESENHO
+            if (event.type == ALLEGRO_EVENT_TIMER) {
+
+                andando = 0;
+
+                if (popup_casa == -1) {
+                    mover_personagem(&x, &y, &direcao, &andando,
+                        velocidade, largura, altura);
+                }
+
+                animar(andando, &contador, &passo);
+
+                // VERIFICA SE ESTA PERTO DE ALGUMA CASA
+                int casa_perto = -1;
+
+                for (int i = 0; i < NUM_CASAS; i++) {
+
+                    if (x + largura > casas[i].x1 - DISTANCIA_PERTO &&
+                        x < casas[i].x2 + DISTANCIA_PERTO &&
+                        y + altura > casas[i].y1 - DISTANCIA_PERTO &&
+                        y < casas[i].y2 + DISTANCIA_PERTO) {
+
+                        casa_perto = i;
+                    }
+                }
+
+                // SAIU DE PERTO: A CASA PODE ABRIR DE NOVO
+                if (casa_perto == -1) {
+                    casa_fechada = -1;
+                }
+
+                // ABRE O MINI JOGO AO CHEGAR PERTO
+                if (popup_casa == -1 &&
+                    casa_perto != -1 &&
+                    casa_perto != casa_fechada &&
+                    !casa_ok[casa_perto]) {
+
+                    popup_casa = casa_perto;
+
+                    definir_mensagem(
+                        mensagem_casa,
+                        sizeof(mensagem_casa),
+                        "Digite 1, 2, 3 ou 4 para responder."
+                    );
+                }
+
+                int total_casas = 0;
+
+                for (int i = 0; i < NUM_CASAS; i++) {
+                    if (casa_ok[i]) {
+                        total_casas++;
+                    }
+                }
+
+                // MAPA E PERSONAGEM
+                al_draw_bitmap(fundo_fase2, 0, 0, 0);
+
+                desenhar_personagem(sheet, direcao, andando,
+                    ciclo[passo], x, y, largura, altura);
+
+                // PLACAR
+                al_draw_filled_rectangle(
+                    10, 10, 250, 40,
+                    al_map_rgba(0, 0, 0, 170)
+                );
+
+                al_draw_textf(
+                    font,
+                    al_map_rgb(255, 255, 255),
+                    20, 21,
+                    ALLEGRO_ALIGN_LEFT,
+                    "Casas concluidas: %d/%d",
+                    total_casas,
+                    NUM_CASAS
+                );
+
+                if (total_casas == NUM_CASAS && popup_casa == -1) {
+
+                    al_draw_filled_rectangle(
+                        162, 740, 862, 780,
+                        al_map_rgba(0, 0, 0, 180)
+                    );
+
+                    al_draw_text(
+                        font,
+                        al_map_rgb(168, 230, 29),
+                        LARGURA_TELA / 2,
+                        756,
+                        ALLEGRO_ALIGN_CENTRE,
+                        "PARABENS! Voce concluiu a Fase 2!"
+                    );
+                }
+
+                // POP-UP DO MINI JOGO
+                if (popup_casa != -1) {
+
+                    al_draw_filled_rectangle(
+                        0, 0,
+                        LARGURA_TELA,
+                        ALTURA_TELA,
+                        al_map_rgba(0, 0, 0, 150)
+                    );
+
+                    al_draw_filled_rounded_rectangle(
+                        112, 105, 912, 695,
+                        18, 18,
+                        al_map_rgb(230, 239, 226)
+                    );
+
+                    al_draw_rounded_rectangle(
+                        112, 105, 912, 695,
+                        18, 18,
+                        al_map_rgb(53, 92, 62),
+                        5
+                    );
+
+                    al_draw_textf(
+                        font,
+                        al_map_rgb(35, 65, 43),
+                        LARGURA_TELA / 2,
+                        130,
+                        ALLEGRO_ALIGN_CENTRE,
+                        "%s",
+                        casas[popup_casa].nome
+                    );
+
+                    al_draw_textf(
+                        font,
+                        al_map_rgb(35, 65, 43),
+                        LARGURA_TELA / 2,
+                        155,
+                        ALLEGRO_ALIGN_CENTRE,
+                        "MINI JOGO: %s",
+                        casas[popup_casa].descricao
+                    );
+
+                    al_draw_multiline_text(
+                        font,
+                        al_map_rgb(35, 65, 43),
+                        170, 230,
+                        680,
+                        25,
+                        ALLEGRO_ALIGN_LEFT,
+                        perguntas_casas[popup_casa]
+                    );
+
+                    if (!casa_ok[popup_casa]) {
+
+                        // ALTERNATIVAS
+                        for (int i = 0; i < 4; i++) {
+
+                            float y_alt = 370 + i * 48;
+
+                            al_draw_filled_rounded_rectangle(
+                                190, y_alt,
+                                834, y_alt + 36,
+                                7, 7,
+                                al_map_rgb(255, 255, 255)
+                            );
+
+                            al_draw_rounded_rectangle(
+                                190, y_alt,
+                                834, y_alt + 36,
+                                7, 7,
+                                al_map_rgb(130, 160, 125),
+                                2
+                            );
+
+                            al_draw_text(
+                                font,
+                                al_map_rgb(35, 65, 43),
+                                215,
+                                y_alt + 11,
+                                ALLEGRO_ALIGN_LEFT,
+                                alternativas_casas[popup_casa][i]
+                            );
+                        }
+                    }
+                    else {
+
+                        // EXPLICACAO DEPOIS DE ACERTAR
+                        al_draw_text(
+                            font,
+                            al_map_rgb(40, 120, 55),
+                            LARGURA_TELA / 2,
+                            370,
+                            ALLEGRO_ALIGN_CENTRE,
+                            "RESPOSTA CORRETA!"
+                        );
+
+                        al_draw_multiline_text(
+                            font,
+                            al_map_rgb(35, 65, 43),
+                            170, 410,
+                            680,
+                            25,
+                            ALLEGRO_ALIGN_LEFT,
+                            explicacoes_casas[popup_casa]
+                        );
+                    }
+
+                    al_draw_text(
+                        font,
+                        al_map_rgb(35, 65, 43),
+                        LARGURA_TELA / 2,
+                        600,
+                        ALLEGRO_ALIGN_CENTRE,
+                        mensagem_casa
+                    );
+
+                    al_draw_text(
+                        font,
+                        al_map_rgb(35, 65, 43),
+                        LARGURA_TELA / 2,
+                        660,
+                        ALLEGRO_ALIGN_CENTRE,
+                        "Aperte E ou ESC para fechar"
+                    );
+                }
+
+                al_flip_display();
+            }
+        }
     }
 
     // =====================================
@@ -1215,6 +1623,7 @@ int main() {
     al_destroy_bitmap(fundo);
     al_destroy_bitmap(fundo_fazenda);
     al_destroy_bitmap(livro_mendel);
+    al_destroy_bitmap(fundo_fase2);
 
     for (int i = 0; i < NUM_ERVILHAS; i++) {
         al_destroy_bitmap(ervilhas[i].imagem);
