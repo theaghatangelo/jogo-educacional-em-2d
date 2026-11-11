@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
@@ -426,30 +425,43 @@ int main() {
                 andando = 0;
 
                 // MOVIMENTACAO
+                // MOVIMENTACAO
                 if (popup_aberto == -1) {
 
                     ALLEGRO_KEYBOARD_STATE teclado;
                     al_get_keyboard_state(&teclado);
 
-                    if (al_key_down(&teclado, ALLEGRO_KEY_W)) {
+                    // ANDAR PARA CIMA (W ou SETA PARA CIMA)
+                    if (al_key_down(&teclado, ALLEGRO_KEY_W) ||
+                        al_key_down(&teclado, ALLEGRO_KEY_UP)) {
+
                         y -= velocidade;
                         direcao = COL_COSTAS;
                         andando = 1;
                     }
 
-                    if (al_key_down(&teclado, ALLEGRO_KEY_S)) {
+                    // ANDAR PARA BAIXO (S ou SETA PARA BAIXO)
+                    if (al_key_down(&teclado, ALLEGRO_KEY_S) ||
+                        al_key_down(&teclado, ALLEGRO_KEY_DOWN)) {
+
                         y += velocidade;
                         direcao = COL_FRENTE;
                         andando = 1;
                     }
 
-                    if (al_key_down(&teclado, ALLEGRO_KEY_A)) {
+                    // ANDAR PARA ESQUERDA (A ou SETA PARA ESQUERDA)
+                    if (al_key_down(&teclado, ALLEGRO_KEY_A) ||
+                        al_key_down(&teclado, ALLEGRO_KEY_LEFT)) {
+
                         x -= velocidade;
                         direcao = COL_ESQUERDA;
                         andando = 1;
                     }
 
-                    if (al_key_down(&teclado, ALLEGRO_KEY_D)) {
+                    // ANDAR PARA DIREITA (D ou SETA PARA DIREITA)
+                    if (al_key_down(&teclado, ALLEGRO_KEY_D) ||
+                        al_key_down(&teclado, ALLEGRO_KEY_RIGHT)) {
+
                         x += velocidade;
                         direcao = COL_DIREITA;
                         andando = 1;
