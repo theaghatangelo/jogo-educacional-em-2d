@@ -142,9 +142,9 @@ int main() {
 
     // LOCAIS DO MAPA
     Local locais[NUM_LOCAIS] = {
-        {148, 128, 436, 299, "LABORATORIO", ""},
-        {734, 76, 955, 238, "FAZENDA DE ERVILHAS", ""},
-        {734, 528, 942, 676, "TESTE DE MESA", ""}
+    {242, 232, 505, 394, "LABORATORIO", ""},
+    {693, 265, 889, 361, "FAZENDA DE ERVILHAS", ""},
+    {607, 467, 845, 693, "CASA", ""}
     };
 
     // PERSONAGEM
