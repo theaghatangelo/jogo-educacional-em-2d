@@ -142,9 +142,9 @@ int main() {
 
     // LOCAIS DO MAPA
     Local locais[NUM_LOCAIS] = {
-    {242, 232, 505, 394, "LABORATORIO", ""},
-    {693, 265, 889, 361, "FAZENDA DE ERVILHAS", ""},
-    {607, 467, 845, 693, "CASA", ""}
+    {242, 232, 505, 394},
+    {693, 265, 889, 361},
+    {607, 467, 845, 693}
     };
 
     // PERSONAGEM
@@ -449,21 +449,7 @@ int main() {
                 // DESENHO DO MAPA
                 al_draw_bitmap(fundo, 0, 0, 0);
 
-                // NOMES DOS LOCAIS
-                for (int i = 0; i < NUM_LOCAIS; i++) {
-
-                    float centro_x = (locais[i].x1 + locais[i].x2) / 2;
-                    float centro_y = (locais[i].y1 + locais[i].y2) / 2;
-
-                    al_draw_text(
-                        font,
-                        al_map_rgb(255, 255, 255),
-                        centro_x,
-                        centro_y - 4,
-                        ALLEGRO_ALIGN_CENTRE,
-                        locais[i].nome
-                    );
-                }
+             
 
                 // DESENHO DO PERSONAGEM
                 int linha = andando ? ciclo[passo] : LIN_PARADO;
@@ -495,8 +481,7 @@ int main() {
                         LARGURA_TELA / 2,
                         756,
                         ALLEGRO_ALIGN_CENTRE,
-                        "Aperte E para entrar: %s",
-                        locais[local_perto].nome
+                        "Aperte E para entrar"
                     );
                 }
 
@@ -619,24 +604,6 @@ int main() {
                             212, 250, 812, 550,
                             al_map_rgb(3, 169, 244),
                             4
-                        );
-
-                        al_draw_text(
-                            font,
-                            al_map_rgb(0, 0, 0),
-                            LARGURA_TELA / 2,
-                            290,
-                            ALLEGRO_ALIGN_CENTRE,
-                            locais[popup_aberto].nome
-                        );
-
-                        al_draw_text(
-                            font,
-                            al_map_rgb(60, 60, 60),
-                            LARGURA_TELA / 2,
-                            380,
-                            ALLEGRO_ALIGN_CENTRE,
-                            locais[popup_aberto].descricao
                         );
                     }
                 }
